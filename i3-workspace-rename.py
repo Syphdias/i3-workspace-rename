@@ -4,6 +4,8 @@
 # TODO: write README.md (rofi combi example, requirements i3ipc, mode of
 #                        support: best-effort, scratch own itch,
 #                        force rename `!rename bla`)
+# TODO: random color (optional: provide list)
+# TODO: ":color" or "color:" to change color, same for id
 from argparse import ArgumentParser
 import re
 
