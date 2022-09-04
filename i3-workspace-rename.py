@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# feture ideas:
-# - save favourites in cache file and print them to be found by rofi
+# feature ideas:
+# - save favorites in cache file and print them to be found by rofi
 # TODO: write README.md (rofi combi example, requirements i3ipc, mode of
 #                        support: best-effort, scratch own itch,
 #                        force rename `!rename bla`)
@@ -9,6 +9,7 @@
 from argparse import ArgumentParser
 import re
 
+# fmt: off
 PANGO_COLOR_NAMES = {
     "aliceblue", "antiquewhite", "aqua", "aquamarine", "azure", "beige",
     "bisque", "black", "blanchedalmond", "blue", "blueviolet", "brown",
@@ -20,9 +21,9 @@ PANGO_COLOR_NAMES = {
     "darkslategrey", "darkturquoise", "darkviolet", "deeppink", "deepskyblue",
     "dimgray", "dimgrey", "dodgerblue", "firebrick", "floralwhite",
     "forestgreen", "fuchsia", "gainsboro", "ghostwhite", "gold", "goldenrod",
-    "gray", "green", "greenyellow", "grey", "honeydew", "hotpink",
-    "indianred", "indigo", "ivory", "khaki", "lavender", "lavenderblush",
-    "lawngreen", "lemonchiffon", "lightblue", "lightcoral", "lightcyan",
+    "gray", "green", "greenyellow", "grey", "honeydew", "hotpink", "indianred",
+    "indigo", "ivory", "khaki", "lavender", "lavenderblush", "lawngreen",
+    "lemonchiffon", "lightblue", "lightcoral", "lightcyan",
     "lightgoldenrodyellow", "lightgray", "lightgreen", "lightgrey",
     "lightpink", "lightsalmon", "lightseagreen", "lightskyblue",
     "lightslategray", "lightslategrey", "lightsteelblue", "lightyellow",
@@ -40,6 +41,7 @@ PANGO_COLOR_NAMES = {
     "turquoise", "violet", "wheat", "white", "whitesmoke", "yellow",
     "yellowgreen",
 }
+# fmt: on
 
 
 def pango_color_string(color):
@@ -92,7 +94,8 @@ def parse_string(renamestring, i3):
     return number, color, name
 
 
-def clean_workspace_name(dirty_name):
+def clean_workspace_name(dirty_name: str) -> str:
+    """Return string with quotes(") and backslashes escaped"""
     clean_name = dirty_name.replace("\\", "\\\\").replace('"', '\\"')
     return clean_name
 
@@ -113,55 +116,56 @@ def string_for_rename(name, number, color="", prefix="", default_color=""):
 
 
 def rename_workspace(
-        i3, name, number, color="", prefix="", default_color="", workspace=""):
-    rename_string = string_for_rename(
-        name, number, color, prefix, default_color)
+    i3, name, number, color="", prefix="", default_color="", workspace=""
+):
+    rename_string = string_for_rename(name, number, color, prefix, default_color)
 
     workspace_quote = ""
     workspace_string = ""
     if workspace:
-        workspace_quote = "\""
+        workspace_quote = '"'
 
-        number_of_workspace = workspace[:workspace.find(":")]
-        name_of_workspace = workspace[workspace.find(":")+1:]
+        number_of_workspace = workspace[: workspace.find(":")]
+        name_of_workspace = workspace[workspace.find(":") + 1 :]
 
-        workspace_string = string_for_rename(
-            name_of_workspace, number_of_workspace)
+        workspace_string = string_for_rename(name_of_workspace, number_of_workspace)
 
     i3.command(
-        f'rename workspace '
-        f'{workspace_quote}{workspace_string}{workspace_quote} '
-        f'to "{rename_string}"')
+        f"rename workspace "
+        f"{workspace_quote}{workspace_string}{workspace_quote} "
+        f'to "{rename_string}"'
+    )
 
 
 def main(args):
     if args.renamestring and args.renamestring != args.print_string:
         from i3ipc import Connection
+
         i3 = Connection()
 
         number, color, name = parse_string(args.renamestring, i3)
 
         workspaces = i3.get_workspaces()
         # if other workspace has wanted number, give it the old number
-        if (args.swap_workspace and
-                int(number) in [ws.num for ws in workspaces]):
+        if args.swap_workspace and int(number) in [ws.num for ws in workspaces]:
             # remote workspace will get number of the current/local workspace
-            number_for_remote_workspace = (
-                i3.get_tree().find_focused().workspace().num)
+            number_for_remote_workspace = i3.get_tree().find_focused().workspace().num
 
             full_workspace_name = (
-                [ws for ws in workspaces if ws.num == int(number)][0].name)
-            name_for_remote_workspace = (
-                full_workspace_name[full_workspace_name.find(":")+1:])
+                [ws for ws in workspaces if ws.num == int(number)][0]
+            ).name
+            name_for_remote_workspace = full_workspace_name[
+                full_workspace_name.find(":") + 1 :
+            ]
 
             rename_workspace(
                 i3,
                 name_for_remote_workspace,
                 number_for_remote_workspace,
-                workspace=full_workspace_name)
+                workspace=full_workspace_name,
+            )
 
-        rename_workspace(
-            i3, name, number, color, args.prefix, args.default_color)
+        rename_workspace(i3, name, number, color, args.prefix, args.default_color)
     else:
         print(args.print_string)
         exit(0)
@@ -170,22 +174,37 @@ def main(args):
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument(
-        "renamestring", nargs="?",
-        help="New name for workspace. Optionally provide color or number "
-        "separated by colons, e.g. red:new_name:7 (order does not matter)")
+        "renamestring",
+        nargs="?",
+        help=(
+            "New name for workspace. Optionally provide color or number "
+            "separated by colons, e.g. red:new_name:7 (order does not matter)"
+        ),
+    )
     parser.add_argument(
-        "--print-string", default="workspace",
-        help="Define what to print if not arguments are given.")
+        "--print-string",
+        default="workspace",
+        help="Define what to print if not arguments are given.",
+    )
     parser.add_argument(
-        "--default-color", default="",
-        help="Default color for workspace name if not given in renamestring")
+        "--default-color",
+        default="",
+        help="Default color for workspace name if not given in renamestring",
+    )
     parser.add_argument(
-        "--prefix", default="",
-        help="Prefix before workspace name (after number and colon)")
+        "--prefix",
+        default="",
+        help="Prefix before workspace name (after number and colon)",
+    )
     parser.add_argument(
-        "--swap-workspace", default=False, action="store_true",
-        help="Swap workspace index with existing workspace if desired number "
-        "is already in use")
+        "--swap-workspace",
+        default=False,
+        action="store_true",
+        help=(
+            "Swap workspace index with existing workspace if desired number "
+            "is already in use"
+        ),
+    )
     # TODO: This might be a new featue to change workspace number to the next
     # unsued number instead of swapping numbers
     # parser.add_argument(
